@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Object AI Classifier (Waste Sorter Tips)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+<body>
+  <h3>AI Classifier</h3>
+  <img id="preview" style="max-width:90%;"/>
+  <p id="result">Result: </p>
+
+  <script>
+    let model;
+    const classes = ['Plastics', 'Organic']; // Change to your labels
+
+    async function loadModel() {
+      model = await tf.loadLayersModel('https://teachablemachine.withgoogle.com/models/-UZUt0CkO/model.json');
+      console.log("Model loaded");
+    }
+    loadModel();
+
+    // Listen for file path from App Inventor
+    document.addEventListener("DOMContentLoaded", () => {
+      if (window.AppInventor) {
+        document.addEventListener("WebViewStringChange", () => {
+          const filePath = window.AppInventor.getWebViewString();
+          // Load local file into <img>
+          document.getElementById('preview').src = filePath;
+          classifyImage();
+        });
+      }
+    });
+
+    async function classifyImage() {
+      const img = document.getElementById('preview');
+      await img.decode();
+      const tensor = tf.browser.fromPixels(img)
+        .resizeNearestNeighbor([224, 224])
+        .toFloat()
+        .expandDims();
+      const prediction = model.predict(tensor);
+      const data = await prediction.data();
+      const top = data.indexOf(Math.max(...data));
+      const resultText = `${classes[top]} (${(data[top] * 100).toFixed(1)}%)`;
+      document.getElementById('result').innerText = "Result: " + resultText;
+      if (window.AppInventor) {
+        window.AppInventor.setWebViewString(resultText);
+      }
+    }
+  </script>
+</body>
+</html>
